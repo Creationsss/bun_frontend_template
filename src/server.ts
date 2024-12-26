@@ -6,6 +6,8 @@ import {
 	type MatchedRoute,
 	type Serve,
 } from "bun";
+import { platform } from "os";
+import { resolve } from "path";
 
 class ServerHandler {
 	private router: FileSystemRouter;
@@ -52,8 +54,17 @@ class ServerHandler {
 
 	private async serveStaticFile(pathname: string): Promise<Response> {
 		try {
-			// eslint-disable-next-line prettier/prettier
-			let filePath: string = pathname === "/favicon.ico" ? new URL("../public/assets/favicon.ico", import.meta.url,).pathname: new URL(`..${pathname}`, import.meta.url).pathname;
+			let filePath: string;
+
+			if (pathname === "/favicon.ico") {
+				filePath = resolve("./public/assets/favicon.ico");
+			} else {
+				filePath = resolve(`.${pathname}`);
+			}
+
+			if (platform() === "win32") {
+				filePath = filePath.replace(/\//g, "\\");
+			}
 
 			const file: BunFile = Bun.file(filePath);
 
