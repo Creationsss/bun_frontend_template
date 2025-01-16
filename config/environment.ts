@@ -1,7 +1,7 @@
 export const environment: Environment = {
-	port: 6600,
-	host: "127.0.0.1",
+	port: parseInt(process.env.PORT || "8080", 10),
+	host: process.env.HOST || "0.0.0.0",
 	development:
-		process.argv.includes("--dev") ||
-		process.argv.includes("--development"),
+		process.env.NODE_ENV === "development" ||
+		process.argv.includes("--dev"),
 };

@@ -6,7 +6,6 @@ import {
 	type MatchedRoute,
 	type Serve,
 } from "bun";
-import { platform } from "os";
 import { resolve } from "path";
 
 class ServerHandler {
@@ -57,13 +56,9 @@ class ServerHandler {
 			let filePath: string;
 
 			if (pathname === "/favicon.ico") {
-				filePath = resolve("./public/assets/favicon.ico");
+				filePath = resolve("public", "assets", "favicon.ico");
 			} else {
 				filePath = resolve(`.${pathname}`);
-			}
-
-			if (platform() === "win32") {
-				filePath = filePath.replace(/\//g, "\\");
 			}
 
 			const file: BunFile = Bun.file(filePath);
@@ -88,9 +83,11 @@ class ServerHandler {
 	}
 
 	private async handleRequest(
-		request: Request,
+		request: ExtendedRequest,
 		server: BunServer,
 	): Promise<Response> {
+		request.startPerf = performance.now();
+
 		const pathname: string = new URL(request.url).pathname;
 		if (pathname.startsWith("/public") || pathname === "/favicon.ico") {
 			return await this.serveStaticFile(pathname);
@@ -136,7 +133,7 @@ class ServerHandler {
 						{
 							success: false,
 							code: 405,
-							error: `Method ${request.method} Not Allowed`,
+							error: `Method ${request.method} Not Allowed, expected ${routeModule.routeDef.method}`,
 						},
 						{ status: 405 },
 					);
@@ -153,7 +150,7 @@ class ServerHandler {
 							{
 								success: false,
 								code: 406,
-								error: `Content-Type ${contentType} Not Acceptable`,
+								error: `Content-Type ${contentType} Not Acceptable, expected ${expectedContentType}`,
 							},
 							{ status: 406 },
 						);
@@ -166,10 +163,12 @@ class ServerHandler {
 							params,
 						);
 
-						response.headers.set(
-							"Content-Type",
-							routeModule.routeDef.returns,
-						);
+						if (routeModule.routeDef.returns !== "*/*") {
+							response.headers.set(
+								"Content-Type",
+								routeModule.routeDef.returns,
+							);
+						}
 					}
 				}
 			} catch (error: unknown) {
@@ -195,6 +194,30 @@ class ServerHandler {
 				{ status: 404 },
 			);
 		}
+
+		queueMicrotask(() => {
+			const headers: Headers = response.headers;
+			let ip: string | null = server.requestIP(request)?.address || null;
+
+			if (!ip) {
+				ip =
+					headers.get("CF-Connecting-IP") ||
+					headers.get("X-Real-IP") ||
+					headers.get("X-Forwarded-For") ||
+					null;
+			}
+
+			logger.custom(
+				`[${request.method}]`,
+				`(${response.status})`,
+				[
+					request.url,
+					`${(performance.now() - request.startPerf).toFixed(2)}ms`,
+					ip || "unknown",
+				],
+				"90",
+			);
+		});
 
 		return response;
 	}

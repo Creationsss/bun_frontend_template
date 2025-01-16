@@ -157,6 +157,33 @@ class Logger {
 		this.writeConsoleMessageColored(logMessageParts, breakLine);
 	}
 
+	public custom(
+		bracketMessage: string,
+		bracketMessage2: string,
+		message: string | string[],
+		color: string,
+		breakLine: boolean = false,
+	): void {
+		const stack: string = new Error().stack || "";
+		const { timestamp } = this.getCallerInfo(stack);
+
+		const joinedMessage: string = Array.isArray(message)
+			? message.join(" ")
+			: message;
+
+		const logMessageParts: ILogMessageParts = {
+			readableTimestamp: { value: timestamp, color: "90" },
+			level: { value: bracketMessage, color },
+			filename: { value: `${bracketMessage2}`, color: "36" },
+			message: { value: joinedMessage, color: "0" },
+		};
+
+		this.writeToLog(
+			`${timestamp} ${bracketMessage} (${bracketMessage2}) ${joinedMessage}`,
+		);
+		this.writeConsoleMessageColored(logMessageParts, breakLine);
+	}
+
 	private writeConsoleMessageColored(
 		logMessageParts: ILogMessageParts,
 		breakLine: boolean = false,
