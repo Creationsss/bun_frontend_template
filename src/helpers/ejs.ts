@@ -1,5 +1,5 @@
 import { renderFile } from "ejs";
-import { join } from "path";
+import { resolve } from "path";
 
 export async function renderEjsTemplate(
 	viewName: string | string[],
@@ -9,9 +9,9 @@ export async function renderEjsTemplate(
 	let templatePath: string;
 
 	if (Array.isArray(viewName)) {
-		templatePath = join(__dirname, "..", "views", ...viewName);
+		templatePath = resolve("src", "views", ...viewName);
 	} else {
-		templatePath = join(__dirname, "..", "views", `${viewName}`);
+		templatePath = resolve("src", "views", viewName);
 	}
 
 	if (!templatePath.endsWith(".ejs")) {
