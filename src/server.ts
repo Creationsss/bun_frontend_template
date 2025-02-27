@@ -8,7 +8,7 @@ import {
 } from "bun";
 import { resolve } from "path";
 
-import { webSocketHandler } from "@/WebSocketHandler";
+import { webSocketHandler } from "@/webSocketHandler";
 
 class ServerHandler {
 	private router: FileSystemRouter;
