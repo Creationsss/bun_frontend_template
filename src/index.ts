@@ -11,7 +11,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: Error) => {
-	logger.error("Error initializing the server:");
-	logger.error(error as Error);
+	logger.error(["Error initializing the server:", error]);
 	process.exit(1);
 });

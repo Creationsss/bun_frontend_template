@@ -130,7 +130,7 @@ class Logger {
 	}
 
 	public error(
-		message: string | string[] | Error | Error[],
+		message: string | Error | (string | Error)[],
 		breakLine: boolean = false,
 	): void {
 		const stack: string = new Error().stack || "";
@@ -181,6 +181,10 @@ class Logger {
 			`${timestamp} ${bracketMessage} (${bracketMessage2}) ${joinedMessage}`,
 		);
 		this.writeConsoleMessageColored(logMessageParts, breakLine);
+	}
+
+	public space(): void {
+		console.log();
 	}
 
 	private writeConsoleMessageColored(

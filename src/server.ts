@@ -83,8 +83,10 @@ class ServerHandler {
 				return new Response("Not Found", { status: 404 });
 			}
 		} catch (error) {
-			logger.error(`Error serving static file: ${pathname}`);
-			logger.error(error as Error);
+			logger.error([
+				`Error serving static file: ${pathname}`,
+				error as Error,
+			]);
 			return new Response("Internal Server Error", { status: 500 });
 		}
 	}
@@ -179,8 +181,10 @@ class ServerHandler {
 					}
 				}
 			} catch (error: unknown) {
-				logger.error(`Error handling route ${request.url}:`);
-				logger.error(error as Error);
+				logger.error([
+					`Error handling route ${request.url}:`,
+					error as Error,
+				]);
 
 				response = Response.json(
 					{

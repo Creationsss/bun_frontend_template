@@ -7,7 +7,7 @@ class WebSocketHandler {
 		try {
 			ws.send(`You said: ${message}`);
 		} catch (error) {
-			logger.error(`WebSocket send error: ${(error as Error).message}`);
+			logger.error(["WebSocket send error", error as Error]);
 		}
 	}
 
@@ -16,7 +16,7 @@ class WebSocketHandler {
 		try {
 			ws.send("Welcome to the WebSocket server!");
 		} catch (error) {
-			logger.error(`WebSocket send error: ${(error as Error).message}`);
+			logger.error(["WebSocket send error", error as Error]);
 		}
 	}
 
