@@ -1,4 +1,5 @@
 import { environment } from "@config/environment";
+import { timestampToReadable } from "@helpers/char";
 import type { Stats } from "fs";
 import {
 	createWriteStream,
@@ -9,8 +10,6 @@ import {
 } from "fs";
 import { EOL } from "os";
 import { basename, join } from "path";
-
-import { timestampToReadable } from "./char";
 
 class Logger {
 	private static instance: Logger;

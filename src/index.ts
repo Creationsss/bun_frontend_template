@@ -1,6 +1,6 @@
 import { logger } from "@helpers/logger";
 
-import { serverHandler } from "./server";
+import { serverHandler } from "@/server";
 
 async function main(): Promise<void> {
 	try {
