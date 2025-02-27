@@ -8,6 +8,8 @@ import {
 } from "bun";
 import { resolve } from "path";
 
+import { webSocketHandler } from "@/WebSocketHandler";
+
 class ServerHandler {
 	private router: FileSystemRouter;
 
@@ -27,6 +29,11 @@ class ServerHandler {
 			port: this.port,
 			hostname: this.host,
 			fetch: this.handleRequest.bind(this),
+			websocket: {
+				open: webSocketHandler.handleOpen.bind(webSocketHandler),
+				message: webSocketHandler.handleMessage.bind(webSocketHandler),
+				close: webSocketHandler.handleClose.bind(webSocketHandler),
+			},
 		});
 
 		logger.info(
@@ -195,29 +202,27 @@ class ServerHandler {
 			);
 		}
 
-		queueMicrotask(() => {
-			const headers: Headers = response.headers;
-			let ip: string | null = server.requestIP(request)?.address || null;
+		const headers: Headers = response.headers;
+		let ip: string | null = server.requestIP(request)?.address || null;
 
-			if (!ip) {
-				ip =
-					headers.get("CF-Connecting-IP") ||
-					headers.get("X-Real-IP") ||
-					headers.get("X-Forwarded-For") ||
-					null;
-			}
+		if (!ip) {
+			ip =
+				headers.get("CF-Connecting-IP") ||
+				headers.get("X-Real-IP") ||
+				headers.get("X-Forwarded-For") ||
+				null;
+		}
 
-			logger.custom(
-				`[${request.method}]`,
-				`(${response.status})`,
-				[
-					request.url,
-					`${(performance.now() - request.startPerf).toFixed(2)}ms`,
-					ip || "unknown",
-				],
-				"90",
-			);
-		});
+		logger.custom(
+			`[${request.method}]`,
+			`(${response.status})`,
+			[
+				request.url,
+				`${(performance.now() - request.startPerf).toFixed(2)}ms`,
+				ip || "unknown",
+			],
+			"90",
+		);
 
 		return response;
 	}
