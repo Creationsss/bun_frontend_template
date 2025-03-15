@@ -1,20 +1,15 @@
 type RouteDef = {
-	method: string;
-	accepts: string | null;
+	method: string | string[];
+	accepts: string | null | string[];
 	returns: string;
 	needsBody?: "multipart" | "json";
 };
 
-type Query = Record<string, string>;
-type Params = Record<string, string>;
-
 type RouteModule = {
 	handler: (
 		request: Request,
-		server: BunServer,
 		requestBody: unknown,
-		query: Query,
-		params: Params,
+		server: BunServer,
 	) => Promise<Response> | Response;
 	routeDef: RouteDef;
 };

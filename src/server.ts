@@ -20,6 +20,7 @@ class ServerHandler {
 		this.router = new FileSystemRouter({
 			style: "nextjs",
 			dir: "./src/routes",
+			fileExtensions: [".ts"],
 			origin: `http://${this.host}:${this.port}`,
 		});
 	}
@@ -137,39 +138,65 @@ class ServerHandler {
 					}
 				}
 
-				if (routeModule.routeDef.method !== request.method) {
+				if (
+					(Array.isArray(routeModule.routeDef.method) &&
+						!routeModule.routeDef.method.includes(
+							request.method,
+						)) ||
+					(!Array.isArray(routeModule.routeDef.method) &&
+						routeModule.routeDef.method !== request.method)
+				) {
 					response = Response.json(
 						{
 							success: false,
 							code: 405,
-							error: `Method ${request.method} Not Allowed, expected ${routeModule.routeDef.method}`,
+							error: `Method ${request.method} Not Allowed, expected ${
+								Array.isArray(routeModule.routeDef.method)
+									? routeModule.routeDef.method.join(", ")
+									: routeModule.routeDef.method
+							}`,
 						},
 						{ status: 405 },
 					);
 				} else {
-					const expectedContentType: string | null =
+					const expectedContentType: string | string[] | null =
 						routeModule.routeDef.accepts;
 
-					const matchesAccepts: boolean =
-						expectedContentType === "*/*" ||
-						actualContentType === expectedContentType;
+					let matchesAccepts: boolean;
+
+					if (Array.isArray(expectedContentType)) {
+						matchesAccepts =
+							expectedContentType.includes("*/*") ||
+							expectedContentType.includes(
+								actualContentType || "",
+							);
+					} else {
+						matchesAccepts =
+							expectedContentType === "*/*" ||
+							actualContentType === expectedContentType;
+					}
 
 					if (!matchesAccepts) {
 						response = Response.json(
 							{
 								success: false,
 								code: 406,
-								error: `Content-Type ${contentType} Not Acceptable, expected ${expectedContentType}`,
+								error: `Content-Type ${actualContentType} Not Acceptable, expected ${
+									Array.isArray(expectedContentType)
+										? expectedContentType.join(", ")
+										: expectedContentType
+								}`,
 							},
 							{ status: 406 },
 						);
 					} else {
+						request.params = params;
+						request.query = query;
+
 						response = await routeModule.handler(
 							request,
-							server,
 							requestBody,
-							query,
-							params,
+							server,
 						);
 
 						if (routeModule.routeDef.returns !== "*/*") {
