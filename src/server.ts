@@ -93,10 +93,11 @@ class ServerHandler {
 	}
 
 	private async handleRequest(
-		request: ExtendedRequest,
+		request: Request,
 		server: BunServer,
 	): Promise<Response> {
-		request.startPerf = performance.now();
+		const extendedRequest: ExtendedRequest = request as ExtendedRequest;
+		extendedRequest.startPerf = performance.now();
 
 		const pathname: string = new URL(request.url).pathname;
 		if (pathname.startsWith("/public") || pathname === "/favicon.ico") {
@@ -190,11 +191,11 @@ class ServerHandler {
 							{ status: 406 },
 						);
 					} else {
-						request.params = params;
-						request.query = query;
+						extendedRequest.params = params;
+						extendedRequest.query = query;
 
 						response = await routeModule.handler(
-							request,
+							extendedRequest,
 							requestBody,
 							server,
 						);
@@ -249,7 +250,7 @@ class ServerHandler {
 			`(${response.status})`,
 			[
 				request.url,
-				`${(performance.now() - request.startPerf).toFixed(2)}ms`,
+				`${(performance.now() - extendedRequest.startPerf).toFixed(2)}ms`,
 				ip || "unknown",
 			],
 			"90",
