@@ -1,17 +1,22 @@
-import { renderEjsTemplate } from "@helpers/ejs";
-
 const routeDef: RouteDef = {
 	method: "GET",
 	accepts: "*/*",
-	returns: "text/html",
+	returns: "application/json",
 };
 
-async function handler(): Promise<Response> {
-	const ejsTemplateData: EjsTemplateData = {
-		title: "Hello, World!",
+async function handler(request: ExtendedRequest): Promise<Response> {
+	const endPerf: number = Date.now();
+	const perf: number = endPerf - request.startPerf;
+
+	const { query, params } = request;
+
+	const response: Record<string, unknown> = {
+		perf,
+		query,
+		params,
 	};
 
-	return await renderEjsTemplate("index", ejsTemplateData);
+	return Response.json(response);
 }
 
 export { handler, routeDef };
