@@ -4,7 +4,7 @@
 	"type": "module",
 	"scripts": {
 		"start": "bun run src/index.ts",
-		"dev": "bun run --watch src/index.ts --dev",
+		"dev": "bun run --hot src/index.ts --dev",
 		"lint": "eslint",
 		"lint:fix": "bun lint --fix",
 		"cleanup": "rm -rf logs node_modules bun.lockdb"
