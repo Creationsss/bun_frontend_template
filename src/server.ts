@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { environment } from "@config/environment";
 import { logger } from "@helpers/logger";
 import {
@@ -6,7 +7,6 @@ import {
 	type MatchedRoute,
 	type Serve,
 } from "bun";
-import { resolve } from "path";
 
 import { webSocketHandler } from "@/websocket";
 
@@ -73,21 +73,16 @@ class ServerHandler {
 
 			if (await file.exists()) {
 				const fileContent: ArrayBuffer = await file.arrayBuffer();
-				const contentType: string =
-					file.type || "application/octet-stream";
+				const contentType: string = file.type || "application/octet-stream";
 
 				return new Response(fileContent, {
 					headers: { "Content-Type": contentType },
 				});
-			} else {
-				logger.warn(`File not found: ${filePath}`);
-				return new Response("Not Found", { status: 404 });
 			}
+			logger.warn(`File not found: ${filePath}`);
+			return new Response("Not Found", { status: 404 });
 		} catch (error) {
-			logger.error([
-				`Error serving static file: ${pathname}`,
-				error as Error,
-			]);
+			logger.error([`Error serving static file: ${pathname}`, error as Error]);
 			return new Response("Internal Server Error", { status: 500 });
 		}
 	}
@@ -113,8 +108,7 @@ class ServerHandler {
 
 			try {
 				const routeModule: RouteModule = await import(filePath);
-				const contentType: string | null =
-					request.headers.get("Content-Type");
+				const contentType: string | null = request.headers.get("Content-Type");
 				const actualContentType: string | null = contentType
 					? contentType.split(";")[0].trim()
 					: null;
@@ -141,9 +135,7 @@ class ServerHandler {
 
 				if (
 					(Array.isArray(routeModule.routeDef.method) &&
-						!routeModule.routeDef.method.includes(
-							request.method,
-						)) ||
+						!routeModule.routeDef.method.includes(request.method)) ||
 					(!Array.isArray(routeModule.routeDef.method) &&
 						routeModule.routeDef.method !== request.method)
 				) {
@@ -168,9 +160,7 @@ class ServerHandler {
 					if (Array.isArray(expectedContentType)) {
 						matchesAccepts =
 							expectedContentType.includes("*/*") ||
-							expectedContentType.includes(
-								actualContentType || "",
-							);
+							expectedContentType.includes(actualContentType || "");
 					} else {
 						matchesAccepts =
 							expectedContentType === "*/*" ||
@@ -209,10 +199,7 @@ class ServerHandler {
 					}
 				}
 			} catch (error: unknown) {
-				logger.error([
-					`Error handling route ${request.url}:`,
-					error as Error,
-				]);
+				logger.error([`Error handling route ${request.url}:`, error as Error]);
 
 				response = Response.json(
 					{
@@ -234,15 +221,15 @@ class ServerHandler {
 			);
 		}
 
-		const headers: Headers = response.headers;
-		let ip: string | null = server.requestIP(request)?.address || null;
+		const headers = request.headers;
+		let ip = server.requestIP(request)?.address;
 
-		if (!ip) {
+		if (!ip || ip.startsWith("172.") || ip === "127.0.0.1") {
 			ip =
-				headers.get("CF-Connecting-IP") ||
-				headers.get("X-Real-IP") ||
-				headers.get("X-Forwarded-For") ||
-				null;
+				headers.get("CF-Connecting-IP")?.trim() ||
+				headers.get("X-Real-IP")?.trim() ||
+				headers.get("X-Forwarded-For")?.split(",")[0].trim() ||
+				"unknown";
 		}
 
 		logger.custom(
