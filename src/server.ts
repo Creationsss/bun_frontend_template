@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { environment } from "@config/environment";
-import { logger } from "@helpers/logger";
+import { logger } from "@creations.works/logger";
 import {
 	type BunFile,
 	FileSystemRouter,
@@ -37,10 +37,9 @@ class ServerHandler {
 			},
 		});
 
-		logger.info(
-			`Server running at http://${server.hostname}:${server.port}`,
-			true,
-		);
+		logger.info(`Server running at http://${server.hostname}:${server.port}`, {
+			breakLine: true,
+		});
 
 		this.logRoutes();
 	}
