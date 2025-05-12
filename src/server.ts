@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { environment } from "@config/environment";
+import { environment, robotstxtPath } from "@config/environment";
 import { logger } from "@creations.works/logger";
 import {
 	type BunFile,
@@ -93,7 +93,39 @@ class ServerHandler {
 		const extendedRequest: ExtendedRequest = request as ExtendedRequest;
 		extendedRequest.startPerf = performance.now();
 
+		const headers = request.headers;
+		let ip = server.requestIP(request)?.address;
+
+		if (!ip || ip.startsWith("172.") || ip === "127.0.0.1") {
+			ip =
+				headers.get("CF-Connecting-IP")?.trim() ||
+				headers.get("X-Real-IP")?.trim() ||
+				headers.get("X-Forwarded-For")?.split(",")[0].trim() ||
+				"unknown";
+		}
+
 		const pathname: string = new URL(request.url).pathname;
+		if (pathname === "/robots.txt" && robotstxtPath) {
+			try {
+				const file: BunFile = Bun.file(robotstxtPath);
+				if (await file.exists()) {
+					const fileContent: ArrayBuffer = await file.arrayBuffer();
+					const contentType: string = file.type || "text/plain";
+					return new Response(fileContent, {
+						headers: { "Content-Type": contentType },
+					});
+				}
+				logger.warn(`File not found: ${robotstxtPath}`);
+				return new Response("Not Found", { status: 404 });
+			} catch (error) {
+				logger.error([
+					`Error serving robots.txt: ${robotstxtPath}`,
+					error as Error,
+				]);
+				return new Response("Internal Server Error", { status: 500 });
+			}
+		}
+
 		if (pathname.startsWith("/public") || pathname === "/favicon.ico") {
 			return await this.serveStaticFile(pathname);
 		}
@@ -218,17 +250,6 @@ class ServerHandler {
 				},
 				{ status: 404 },
 			);
-		}
-
-		const headers = request.headers;
-		let ip = server.requestIP(request)?.address;
-
-		if (!ip || ip.startsWith("172.") || ip === "127.0.0.1") {
-			ip =
-				headers.get("CF-Connecting-IP")?.trim() ||
-				headers.get("X-Real-IP")?.trim() ||
-				headers.get("X-Forwarded-For")?.split(",")[0].trim() ||
-				"unknown";
 		}
 
 		logger.custom(
