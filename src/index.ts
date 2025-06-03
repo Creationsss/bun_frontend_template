@@ -1,6 +1,6 @@
 import { echo } from "@atums/echo";
 
-import { verifyRequiredVariables } from "@config/environment";
+import { verifyRequiredVariables } from "@config";
 import { serverHandler } from "@server";
 
 async function main(): Promise<void> {

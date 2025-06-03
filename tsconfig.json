@@ -3,9 +3,9 @@
 		"baseUrl": "./",
 		"paths": {
 			"@*": ["src/*"],
+			"@config": ["config/index.ts"],
 			"@config/*": ["config/*"],
-			"@types/*": ["types/*"],
-			"@helpers/*": ["src/helpers/*"]
+			"@types/*": ["types/*"]
 		},
 		"typeRoots": ["./types", "./node_modules/@types"],
 		"lib": ["ESNext", "DOM"],

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { echo } from "@atums/echo";
-import { environment } from "@config/environment";
+import { environment } from "@config";
 import {
 	type BunFile,
 	FileSystemRouter,
