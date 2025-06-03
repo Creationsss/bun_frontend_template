@@ -1,14 +1,14 @@
 import { resolve } from "node:path";
-import { environment, robotstxtPath } from "@config/environment";
-import { logger } from "@creations.works/logger";
+import { echo } from "@atums/echo";
+import { environment } from "@config/environment";
 import {
 	type BunFile,
 	FileSystemRouter,
 	type MatchedRoute,
-	type Serve,
+	type Server,
 } from "bun";
 
-import { webSocketHandler } from "@/websocket";
+import { webSocketHandler } from "@websocket";
 
 class ServerHandler {
 	private router: FileSystemRouter;
@@ -19,14 +19,14 @@ class ServerHandler {
 	) {
 		this.router = new FileSystemRouter({
 			style: "nextjs",
-			dir: "./src/routes",
+			dir: resolve("src", "routes"),
 			fileExtensions: [".ts"],
 			origin: `http://${this.host}:${this.port}`,
 		});
 	}
 
 	public initialize(): void {
-		const server: Serve = Bun.serve({
+		const server: Server = Bun.serve({
 			port: this.port,
 			hostname: this.host,
 			fetch: this.handleRequest.bind(this),
@@ -37,15 +37,13 @@ class ServerHandler {
 			},
 		});
 
-		logger.info(`Server running at http://${server.hostname}:${server.port}`, {
-			breakLine: true,
-		});
+		echo.info(`Server running at http://${server.hostname}:${server.port}`);
 
 		this.logRoutes();
 	}
 
 	private logRoutes(): void {
-		logger.info("Available routes:");
+		echo.info("Available routes:");
 
 		const sortedRoutes: [string, string][] = Object.entries(
 			this.router.routes,
@@ -54,14 +52,19 @@ class ServerHandler {
 		);
 
 		for (const [path, filePath] of sortedRoutes) {
-			logger.info(`Route: ${path}, File: ${filePath}`);
+			echo.info(`Route: ${path}, File: ${filePath}`);
 		}
 	}
 
-	private async serveStaticFile(pathname: string): Promise<Response> {
-		try {
-			let filePath: string;
+	private async serveStaticFile(
+		request: ExtendedRequest,
+		pathname: string,
+		ip: string,
+	): Promise<Response> {
+		let filePath: string;
+		let response: Response;
 
+		try {
 			if (pathname === "/favicon.ico") {
 				filePath = resolve("public", "assets", "favicon.ico");
 			} else {
@@ -72,18 +75,49 @@ class ServerHandler {
 
 			if (await file.exists()) {
 				const fileContent: ArrayBuffer = await file.arrayBuffer();
-				const contentType: string = file.type || "application/octet-stream";
+				const contentType: string = file.type ?? "application/octet-stream";
 
-				return new Response(fileContent, {
+				response = new Response(fileContent, {
 					headers: { "Content-Type": contentType },
 				});
+			} else {
+				echo.warn(`File not found: ${filePath}`);
+				response = new Response("Not Found", { status: 404 });
 			}
-			logger.warn(`File not found: ${filePath}`);
-			return new Response("Not Found", { status: 404 });
 		} catch (error) {
-			logger.error([`Error serving static file: ${pathname}`, error as Error]);
-			return new Response("Internal Server Error", { status: 500 });
+			echo.error({
+				message: `Error serving static file: ${pathname}`,
+				error: error as Error,
+			});
+			response = new Response("Internal Server Error", { status: 500 });
 		}
+
+		this.logRequest(request, response, ip);
+		return response;
+	}
+
+	private logRequest(
+		request: ExtendedRequest,
+		response: Response,
+		ip: string | undefined,
+	): void {
+		const pathname = new URL(request.url).pathname;
+
+		const ignoredStartsWith: string[] = ["/public"];
+		const ignoredPaths: string[] = ["/favicon.ico"];
+
+		if (
+			ignoredStartsWith.some((prefix) => pathname.startsWith(prefix)) ||
+			ignoredPaths.includes(pathname)
+		) {
+			return;
+		}
+
+		echo.custom(`${request.method}`, `${response.status}`, [
+			request.url,
+			`${(performance.now() - request.startPerf).toFixed(2)}ms`,
+			ip || "unknown",
+		]);
 	}
 
 	private async handleRequest(
@@ -95,44 +129,44 @@ class ServerHandler {
 
 		const headers = request.headers;
 		let ip = server.requestIP(request)?.address;
+		let response: Response;
 
 		if (!ip || ip.startsWith("172.") || ip === "127.0.0.1") {
 			ip =
 				headers.get("CF-Connecting-IP")?.trim() ||
 				headers.get("X-Real-IP")?.trim() ||
-				headers.get("X-Forwarded-For")?.split(",")[0].trim() ||
+				headers.get("X-Forwarded-For")?.split(",")[0]?.trim() ||
 				"unknown";
 		}
 
 		const pathname: string = new URL(request.url).pathname;
-		if (pathname === "/robots.txt" && robotstxtPath) {
-			try {
-				const file: BunFile = Bun.file(robotstxtPath);
-				if (await file.exists()) {
-					const fileContent: ArrayBuffer = await file.arrayBuffer();
-					const contentType: string = file.type || "text/plain";
-					return new Response(fileContent, {
-						headers: { "Content-Type": contentType },
-					});
-				}
-				logger.warn(`File not found: ${robotstxtPath}`);
-				return new Response("Not Found", { status: 404 });
-			} catch (error) {
-				logger.error([
-					`Error serving robots.txt: ${robotstxtPath}`,
-					error as Error,
-				]);
-				return new Response("Internal Server Error", { status: 500 });
-			}
+
+		const baseDir = resolve("public", "custom");
+		const customPath = resolve(baseDir, pathname.slice(1));
+
+		if (!customPath.startsWith(baseDir)) {
+			response = new Response("Forbidden", { status: 403 });
+			this.logRequest(extendedRequest, response, ip);
+			return response;
+		}
+
+		const customFile = Bun.file(customPath);
+		if (await customFile.exists()) {
+			const content = await customFile.arrayBuffer();
+			const type: string = customFile.type ?? "application/octet-stream";
+			response = new Response(content, {
+				headers: { "Content-Type": type },
+			});
+			this.logRequest(extendedRequest, response, ip);
+			return response;
 		}
 
 		if (pathname.startsWith("/public") || pathname === "/favicon.ico") {
-			return await this.serveStaticFile(pathname);
+			return await this.serveStaticFile(extendedRequest, pathname, ip);
 		}
 
 		const match: MatchedRoute | null = this.router.match(request);
 		let requestBody: unknown = {};
-		let response: Response;
 
 		if (match) {
 			const { filePath, params, query } = match;
@@ -141,7 +175,7 @@ class ServerHandler {
 				const routeModule: RouteModule = await import(filePath);
 				const contentType: string | null = request.headers.get("Content-Type");
 				const actualContentType: string | null = contentType
-					? contentType.split(";")[0].trim()
+					? (contentType.split(";")[0]?.trim() ?? null)
 					: null;
 
 				if (
@@ -230,7 +264,10 @@ class ServerHandler {
 					}
 				}
 			} catch (error: unknown) {
-				logger.error([`Error handling route ${request.url}:`, error as Error]);
+				echo.error({
+					message: `Error handling route ${request.url}`,
+					error: error,
+				});
 
 				response = Response.json(
 					{
@@ -252,20 +289,11 @@ class ServerHandler {
 			);
 		}
 
-		logger.custom(
-			`[${request.method}]`,
-			`(${response.status})`,
-			[
-				request.url,
-				`${(performance.now() - extendedRequest.startPerf).toFixed(2)}ms`,
-				ip || "unknown",
-			],
-			"90",
-		);
-
+		this.logRequest(extendedRequest, response, ip);
 		return response;
 	}
 }
+
 const serverHandler: ServerHandler = new ServerHandler(
 	environment.port,
 	environment.host,

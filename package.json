@@ -10,16 +10,13 @@
 		"cleanup": "rm -rf logs node_modules bun.lockdb"
 	},
 	"devDependencies": {
-		"@types/bun": "^1.2.10",
-		"@types/ejs": "^3.1.5",
-		"globals": "^16.0.0",
-		"@biomejs/biome": "^1.9.4"
+		"@types/bun": "latest",
+		"@biomejs/biome": "latest"
 	},
 	"peerDependencies": {
-		"typescript": "^5.8.2"
+		"typescript": "latest"
 	},
 	"dependencies": {
-		"@creations.works/logger": "^1.0.3",
-		"ejs": "^3.1.10"
+		"@atums/echo": "latest"
 	}
 }

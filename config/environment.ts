@@ -1,5 +1,4 @@
-import { resolve } from "node:path";
-import { logger } from "@creations.works/logger";
+import { echo } from "@atums/echo";
 
 const environment: Environment = {
 	port: Number.parseInt(process.env.PORT || "8080", 10),
@@ -7,10 +6,6 @@ const environment: Environment = {
 	development:
 		process.env.NODE_ENV === "development" || process.argv.includes("--dev"),
 };
-
-const robotstxtPath: string | null = process.env.ROBOTS_FILE
-	? resolve(process.env.ROBOTS_FILE)
-	: null;
 
 function verifyRequiredVariables(): void {
 	const requiredVariables = ["HOST", "PORT"];
@@ -20,7 +15,7 @@ function verifyRequiredVariables(): void {
 	for (const key of requiredVariables) {
 		const value = process.env[key];
 		if (value === undefined || value.trim() === "") {
-			logger.error(`Missing or empty environment variable: ${key}`);
+			echo.error(`Missing or empty environment variable: ${key}`);
 			hasError = true;
 		}
 	}
@@ -30,4 +25,4 @@ function verifyRequiredVariables(): void {
 	}
 }
 
-export { environment, robotstxtPath, verifyRequiredVariables };
+export { environment, verifyRequiredVariables };
