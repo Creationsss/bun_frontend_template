@@ -7,14 +7,8 @@
 			"@types/*": ["types/*"],
 			"@helpers/*": ["src/helpers/*"]
 		},
-		"typeRoots": [
-			"./types",
-			"./node_modules/@types"
-		],
-		"lib": [
-			"ESNext",
-			"DOM"
-		],
+		"typeRoots": ["./types", "./node_modules/@types"],
+		"lib": ["ESNext", "DOM"],
 		"target": "ESNext",
 		"module": "ESNext",
 		"moduleDetection": "force",
@@ -32,8 +26,5 @@
 		"noUncheckedIndexedAccess": true,
 		"noPropertyAccessFromIndexSignature": false
 	},
-	"include": [
-		"src",
-		"types"
-	]
+	"include": ["src", "types"]
 }
