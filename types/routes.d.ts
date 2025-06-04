@@ -9,7 +9,7 @@ type RouteModule = {
 	handler: (
 		request: Request | ExtendedRequest,
 		requestBody: unknown,
-		server: BunServer,
+		server: Server,
 	) => Promise<Response> | Response;
 	routeDef: RouteDef;
 };

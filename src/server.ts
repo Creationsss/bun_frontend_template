@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { echo } from "@atums/echo";
+import { Echo, echo } from "@atums/echo";
 import { environment } from "@config";
 import {
 	type BunFile,
@@ -37,12 +37,15 @@ class ServerHandler {
 			},
 		});
 
-		echo.info(`Server running at http://${server.hostname}:${server.port}`);
+		const echoChild = new Echo({ disableFile: true });
 
-		this.logRoutes();
+		echoChild.info(
+			`Server running at http://${server.hostname}:${server.port}`,
+		);
+		this.logRoutes(echoChild);
 	}
 
-	private logRoutes(): void {
+	private logRoutes(echo: Echo): void {
 		echo.info("Available routes:");
 
 		const sortedRoutes: [string, string][] = Object.entries(
@@ -122,7 +125,7 @@ class ServerHandler {
 
 	private async handleRequest(
 		request: Request,
-		server: BunServer,
+		server: Server,
 	): Promise<Response> {
 		const extendedRequest: ExtendedRequest = request as ExtendedRequest;
 		extendedRequest.startPerf = performance.now();
