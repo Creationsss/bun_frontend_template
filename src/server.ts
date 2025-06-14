@@ -1,14 +1,13 @@
 import { resolve } from "node:path";
 import { Echo, echo } from "@atums/echo";
 import { environment } from "@config";
+import { webSocketHandler } from "@websocket";
 import {
 	type BunFile,
 	FileSystemRouter,
 	type MatchedRoute,
 	type Server,
 } from "bun";
-
-import { webSocketHandler } from "@websocket";
 
 class ServerHandler {
 	private router: FileSystemRouter;
@@ -251,12 +250,9 @@ class ServerHandler {
 					} else {
 						extendedRequest.params = params;
 						extendedRequest.query = query;
+						extendedRequest.body = requestBody;
 
-						response = await routeModule.handler(
-							extendedRequest,
-							requestBody,
-							server,
-						);
+						response = await routeModule.handler(extendedRequest, server);
 
 						if (routeModule.routeDef.returns !== "*/*") {
 							response.headers.set(

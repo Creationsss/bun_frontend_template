@@ -5,11 +5,12 @@ type RouteDef = {
 	needsBody?: "multipart" | "json";
 };
 
+type handler = (
+	request: Request | ExtendedRequest,
+	server: Server,
+) => Promise<Response> | Response;
+
 type RouteModule = {
-	handler: (
-		request: Request | ExtendedRequest,
-		requestBody: unknown,
-		server: Server,
-	) => Promise<Response> | Response;
+	handler: handler;
 	routeDef: RouteDef;
 };
