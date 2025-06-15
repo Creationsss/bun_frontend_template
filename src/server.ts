@@ -1,13 +1,14 @@
 import { resolve } from "node:path";
 import { Echo, echo } from "@atums/echo";
-import { environment } from "@config";
-import { webSocketHandler } from "@websocket";
 import {
 	type BunFile,
 	FileSystemRouter,
 	type MatchedRoute,
 	type Server,
 } from "bun";
+import { environment } from "#environment";
+import { reqLoggerIgnores } from "#environment/constants";
+import { webSocketHandler } from "#websocket";
 
 class ServerHandler {
 	private router: FileSystemRouter;
@@ -105,12 +106,11 @@ class ServerHandler {
 	): void {
 		const pathname = new URL(request.url).pathname;
 
-		const ignoredStartsWith: string[] = ["/public"];
-		const ignoredPaths: string[] = ["/favicon.ico"];
-
 		if (
-			ignoredStartsWith.some((prefix) => pathname.startsWith(prefix)) ||
-			ignoredPaths.includes(pathname)
+			reqLoggerIgnores.ignoredStartsWith.some((prefix) =>
+				pathname.startsWith(prefix),
+			) ||
+			reqLoggerIgnores.ignoredPaths.includes(pathname)
 		) {
 			return;
 		}
@@ -168,7 +168,7 @@ class ServerHandler {
 		}
 
 		const match: MatchedRoute | null = this.router.match(request);
-		let requestBody: unknown = {};
+		let requestBody: unknown = null;
 
 		if (match) {
 			const { filePath, params, query } = match;
@@ -185,7 +185,7 @@ class ServerHandler {
 					actualContentType === "application/json"
 				) {
 					try {
-						requestBody = await request.json();
+						requestBody = (await request.json()) as Record<string, unknown>;
 					} catch {
 						requestBody = {};
 					}
@@ -194,10 +194,49 @@ class ServerHandler {
 					actualContentType === "multipart/form-data"
 				) {
 					try {
-						requestBody = await request.formData();
+						requestBody = (await request.formData()) as FormData;
+					} catch {
+						requestBody = new FormData();
+					}
+				} else if (
+					routeModule.routeDef.needsBody === "urlencoded" &&
+					actualContentType === "application/x-www-form-urlencoded"
+				) {
+					try {
+						const formData = await request.formData();
+						requestBody = Object.fromEntries(formData.entries()) as Record<
+							string,
+							string
+						>;
 					} catch {
 						requestBody = {};
 					}
+				} else if (
+					routeModule.routeDef.needsBody === "text" &&
+					actualContentType?.startsWith("text/")
+				) {
+					try {
+						requestBody = (await request.text()) as string;
+					} catch {
+						requestBody = "";
+					}
+				} else if (
+					routeModule.routeDef.needsBody === "raw" ||
+					routeModule.routeDef.needsBody === "buffer"
+				) {
+					try {
+						requestBody = (await request.arrayBuffer()) as ArrayBuffer;
+					} catch {
+						requestBody = new ArrayBuffer(0);
+					}
+				} else if (routeModule.routeDef.needsBody === "blob") {
+					try {
+						requestBody = (await request.blob()) as Blob;
+					} catch {
+						requestBody = new Blob();
+					}
+				} else if (routeModule.routeDef.needsBody) {
+					requestBody = null;
 				}
 
 				if (
@@ -250,7 +289,7 @@ class ServerHandler {
 					} else {
 						extendedRequest.params = params;
 						extendedRequest.query = query;
-						extendedRequest.body = requestBody;
+						extendedRequest.requestBody = requestBody;
 
 						response = await routeModule.handler(extendedRequest, server);
 

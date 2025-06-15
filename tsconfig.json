@@ -2,8 +2,7 @@
 	"compilerOptions": {
 		"baseUrl": "./",
 		"paths": {
-			"@*": ["src/*"],
-			"@config": ["config/index.ts"]
+			"#*": ["src/*"]
 		},
 		"typeRoots": ["./types", "./node_modules/@types"],
 		"lib": ["ESNext", "DOM"],

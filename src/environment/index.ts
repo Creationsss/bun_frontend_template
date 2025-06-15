@@ -1,4 +1,5 @@
 import { echo } from "@atums/echo";
+import { requiredVariables } from "#environment/constants";
 
 const environment: Environment = {
 	port: Number.parseInt(process.env.PORT || "8080", 10),
@@ -8,8 +9,6 @@ const environment: Environment = {
 };
 
 function verifyRequiredVariables(): void {
-	const requiredVariables = ["HOST", "PORT"];
-
 	let hasError = false;
 
 	for (const key of requiredVariables) {
